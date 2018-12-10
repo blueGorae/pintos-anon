@@ -74,11 +74,11 @@ bool load_page(void * vaddr){
 
     if (spte->cur_file_info-> page_read_bytes == 0)
     {
-        flags |= PAL_ZERO;
+        flags == PAL_USER & PAL_ZERO;
     }
 
     void * frame = fte_alloc(flags, spte)->frame;
-
+    printf("new frame %p and loaded page %p\n", frame, spte->vaddr);
     if(frame == NULL){
         printf("error 0 \n");
         frame_evict();

@@ -9,9 +9,12 @@ struct fte* fte_alloc(enum palloc_flags flags, struct s_pte * spte){
     struct fte* fte = (struct fte *)malloc(sizeof(struct fte));
     void * frame  = palloc_get_page(flags);
 
+    printf("fte_alloc is called %p \n", frame);
     if(frame == NULL){
-        frame_evict();
-        frame = palloc_get_page(flags);
+        return NULL;
+
+        // frame_evict();
+        // frame = palloc_get_page(flags);
     }
     
     fte -> frame = frame;
@@ -23,16 +26,18 @@ struct fte* fte_alloc(enum palloc_flags flags, struct s_pte * spte){
 }
 
 void fte_free(void * frame){
+   
+    printf("frame free called \n");
 
     lock_acquire(&frame_lock);
     struct fte * fte = fte_search_by_frame(frame);
-   // printf("frame free called \n");
     if(fte == NULL)
         return;
     list_remove(&fte->elem);
     palloc_free_page(fte->frame);
     free(fte);
     lock_release(&frame_lock);
+    printf("fte free %p \n", frame); 
 }
 
 struct fte* fte_search_by_frame(void * frame){
