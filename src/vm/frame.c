@@ -7,7 +7,11 @@ void frame_table_init(){
 struct fte* fte_alloc(void * page){
     
     struct fte* fte = (struct fte *)malloc(sizeof(struct fte));
-    fte -> frame = page;
+    void * frame  = palloc_get_page(PAL_USER);
+    if(frame == NULL)
+        frame_evict();
+    
+    fte -> frame = palloc_get_page(PAL_USER);
     fte -> thread = thread_current();
     fte -> allocatable = true;
     list_push_back(&frame_table, &fte->elem);
@@ -16,6 +20,7 @@ struct fte* fte_alloc(void * page){
 
 void fte_free(void * frame){
 
+    palloc_free_page(frame);
     struct fte * fte = fte_search_by_frame(frame);
     list_remove(&fte->elem);
     free(fte);
