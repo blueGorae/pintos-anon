@@ -32,7 +32,7 @@ struct s_pte* s_pte_alloc(struct cur_file_info * cur_file_info, void * vaddr){
     spte->cur_file_info =  cur_file_info;
     spte -> vaddr = vaddr;
     hash_insert(&thread_current()->s_page_table, &spte->elem);
-    printf("number of hash entry : %d \n", thread_current()->s_page_table.elem_cnt);
+    //printf("number of hash entry : %d \n", thread_current()->s_page_table.elem_cnt);
     return spte;
 }
 
@@ -43,7 +43,6 @@ static void s_page_action_func (struct hash_elem *e, void *aux UNUSED)
 }
 
 void s_page_table_destroy(){
-    
     hash_destroy (&thread_current()->s_page_table, s_page_action_func);
 }
 
@@ -75,6 +74,7 @@ bool load_page(void * vaddr){
     void * frame = fte_alloc(flags)->frame;
 
     if(frame == NULL){
+        printf("error 0 \n");
         frame_evict();
         frame = fte_alloc(flags)->frame;
     }

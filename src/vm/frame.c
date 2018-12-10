@@ -22,9 +22,11 @@ struct fte* fte_alloc(enum palloc_flags flags){
 
 void fte_free(void * frame){
 
-    palloc_free_page(frame);
     struct fte * fte = fte_search_by_frame(frame);
+    if(fte == NULL)
+        return;
     list_remove(&fte->elem);
+    palloc_free_page(fte->frame);
     free(fte);
 }
 

@@ -498,7 +498,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       /* Lazy Loading */
 
       s_pte_alloc(cur_file_info, upage);
-      printf("s_pte allocated address %p \n", upage);
+//      printf("s_pte allocated address %p \n", upage);
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;

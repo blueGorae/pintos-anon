@@ -73,7 +73,7 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
   struct pool *pool = flags & PAL_USER ? &user_pool : &kernel_pool;
   void *pages;
   size_t page_idx;
-
+  
   if (page_cnt == 0)
     return NULL;
 
@@ -96,6 +96,7 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
       if (flags & PAL_ASSERT)
         PANIC ("palloc_get: out of pages");
     }
+  printf("palloc_get_page :  %p \n", pages);
 
   return pages;
 }
