@@ -38,7 +38,13 @@ struct s_pte* s_pte_alloc(struct cur_file_info * cur_file_info, void * vaddr){
 
 static void s_page_action_func (struct hash_elem *e, void *aux UNUSED)
 {
+    //printf("page free called \n");
   struct s_pte *spte = hash_entry(e, struct s_pte, elem);
+  if(is_loaded(spte->vaddr)){
+
+      fte_free(fte_search_by_spte(spte)->frame);
+      pagedir_clear_page(thread_current()->pagedir, spte->vaddr);
+  }
   free(spte);
 }
 
@@ -71,12 +77,12 @@ bool load_page(void * vaddr){
         flags |= PAL_ZERO;
     }
 
-    void * frame = fte_alloc(flags)->frame;
+    void * frame = fte_alloc(flags, spte)->frame;
 
     if(frame == NULL){
         printf("error 0 \n");
         frame_evict();
-        frame = fte_alloc(flags)->frame;
+        frame = fte_alloc(flags, spte)->frame;
     }
 
     /* Load this page. */
@@ -104,7 +110,8 @@ bool load_page(void * vaddr){
 }
 
 bool is_loaded(void * page){
-    if(fte_search_by_frame(page) == NULL)
+   struct s_pte * spte = s_pte_search_by_vaddr(page); 
+    if(fte_search_by_spte(spte) == NULL)
         return false;
     
     return true;
