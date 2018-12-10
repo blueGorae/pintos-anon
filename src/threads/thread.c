@@ -16,6 +16,7 @@
 #include "userprog/signal.h"
 #endif
 #include "vm/frame.h"
+#include "vm/page.h"
 /* Random value for struct thread's `magic' member.
    Used to detect stack overflow.  See the big comment at the top
    of thread.h for details. */
@@ -91,8 +92,8 @@ thread_init (void)
   ASSERT (intr_get_level () == INTR_OFF);
 
   signal_init();
-
   lock_init (&tid_lock);
+  lock_init (&frame_lock);
   list_init (&ready_list);
   list_init (&all_list);
   frame_table_init();
