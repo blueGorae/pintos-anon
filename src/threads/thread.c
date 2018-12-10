@@ -93,6 +93,7 @@ thread_init (void)
 
   signal_init();
   lock_init (&tid_lock);
+  lock_init (&frame_lock);
   list_init (&ready_list);
   list_init (&all_list);
   frame_table_init();

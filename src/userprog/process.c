@@ -515,7 +515,7 @@ setup_stack (void **esp)
   uint8_t *kpage;
   bool success = false;
 
-  kpage = fte_alloc(PAL_USER | PAL_ZERO)->frame;
+  kpage = palloc_get_page(PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
       success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);

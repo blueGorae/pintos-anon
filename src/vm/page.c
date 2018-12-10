@@ -40,11 +40,11 @@ static void s_page_action_func (struct hash_elem *e, void *aux UNUSED)
 {
     //printf("page free called \n");
   struct s_pte *spte = hash_entry(e, struct s_pte, elem);
-  if(is_loaded(spte->vaddr)){
+  //if(is_loaded(spte->vaddr)){
 
       fte_free(fte_search_by_spte(spte)->frame);
       pagedir_clear_page(thread_current()->pagedir, spte->vaddr);
-  }
+//  }
   free(spte);
 }
 
