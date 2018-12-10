@@ -18,7 +18,7 @@ struct fte{
 };
 
 void frame_table_init();
-struct fte* fte_alloc(void * page);
+struct fte* fte_alloc(enum palloc_flags flags);
 void fte_free(void * frame);
 struct fte* fte_search_by_frame(void * frame);
 void frame_evict();

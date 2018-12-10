@@ -4,14 +4,16 @@ void frame_table_init(){
     list_init(&frame_table);
 }
 
-struct fte* fte_alloc(void * page){
+struct fte* fte_alloc(enum palloc_flags flags){
     
     struct fte* fte = (struct fte *)malloc(sizeof(struct fte));
-    void * frame  = palloc_get_page(PAL_USER);
-    if(frame == NULL)
+    void * frame  = palloc_get_page(flags);
+    if(frame == NULL){
         frame_evict();
+        frame - palloc_get_page(flags);
+    }
     
-    fte -> frame = palloc_get_page(PAL_USER);
+    fte -> frame = frame;
     fte -> thread = thread_current();
     fte -> allocatable = true;
     list_push_back(&frame_table, &fte->elem);
@@ -48,5 +50,5 @@ void frame_evict(){
     struct fte* fte = list_entry(e, struct fte, elem);
     void * frame = fte-> frame;
     
-    palloc_free_page(frame);
+    fte_free(frame);
 }
