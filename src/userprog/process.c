@@ -482,8 +482,18 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
+      struct cur_file_info * cur_file_info = (struct cur_file_info *) malloc(sizeof(struct cur_file_info));
+      cur_file_info -> file = file;
+      cur_file_info -> offset = ofs;
+      cur_file_info -> page_read_bytes = page_read_bytes;
+      cur_file_info -> page_zero_bytes = page_zero_bytes;
+      cur_file_info -> writable = writable;
+
+
+      struct s_pte * spte = s_pte_alloc(cur_file_info, upage);
+
       /* Get a page of memory. */
-      uint8_t *kpage = fte_alloc(NULL)->frame;
+      uint8_t *kpage = fte_alloc(PAL_USER, spte)->frame;
       if (kpage == NULL)
         return false;
 
