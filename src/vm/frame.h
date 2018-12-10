@@ -1,4 +1,5 @@
-#ifdef VM_FRAME
+
+#ifndef VM_FRAME_H
 #define VM_FRAME_H
 
 #include <list.h>
@@ -21,6 +22,8 @@ struct fte* fte_alloc(void * page);
 void fte_free(void * frame);
 struct fte* fte_search_by_frame(void * frame);
 void frame_evict();
+
+
 
 
 

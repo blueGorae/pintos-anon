@@ -13,6 +13,7 @@ struct fte* fte_alloc(void * page){
     list_push_back(&frame_table, &fte->elem);
     return fte;
 }
+
 void fte_free(void * frame){
 
     struct fte * fte = fte_search_by_frame(frame);
@@ -24,9 +25,9 @@ struct fte* fte_search_by_frame(void * frame){
     struct list_elem *e;
 
     for(e = list_begin(&frame_table) ; e != list_end(&frame_table) ; e = list_next(e)){
-	struct fte * fte = list_entry(e, struct fte, elem);
-	if(fte-> frame == frame)
-	    return fte;
+        struct fte * fte = list_entry(e, struct fte, elem);
+        if(fte-> frame == frame)
+            return fte;
     }
     return NULL;
 }
