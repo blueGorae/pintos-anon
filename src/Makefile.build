@@ -64,7 +64,7 @@ userprog_SRC += userprog/signal.c # Signal management.
 
 # Virtual memory code yet.
 vm_SRC = vm/frame.c			# Frame Table file.
-
+vm_SRC += vm/page.c			# Supplemental Page Table file.
 # Filesystem code.
 filesys_SRC  = filesys/filesys.c	# Filesystem core.
 filesys_SRC += filesys/free-map.c	# Free sector bitmap.

@@ -483,7 +483,7 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
       /* Get a page of memory. */
-      uint8_t *kpage = fte_alloc(NULL)->frame;
+      uint8_t *kpage = fte_alloc(PAL_USER)->frame;
       if (kpage == NULL)
         return false;
 
