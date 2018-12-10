@@ -22,6 +22,7 @@
 #include "userprog/syscall.h"
 
 #include "vm/frame.h"
+#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -67,6 +68,9 @@ start_process (void *file_name_)
   char *file_name = strtok_r(file_name_, " ", &save_ptr);
   struct intr_frame if_;
   bool success;
+
+  s_page_table_init(&thread_current()->s_page_table);
+
   
   void **esp = &if_.esp;
   
@@ -180,7 +184,9 @@ process_exit (void)
     file_close(f_e->file_ptr);
     free(f_e);
   }
-  
+
+  s_page_table_destroy();
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -482,26 +488,17 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      /* Get a page of memory. */
-      uint8_t *kpage = fte_alloc(PAL_USER)->frame;
-      if (kpage == NULL)
-        return false;
+      struct cur_file_info * cur_file_info = (struct cur_file_info *) malloc(sizeof(struct cur_file_info));
+      cur_file_info-> file = file;
+      cur_file_info-> offset = ofs;
+      cur_file_info-> page_read_bytes = page_read_bytes;
+      cur_file_info-> page_zero_bytes = page_zero_bytes;
+      cur_file_info-> writable = writable;
 
-      /* Load this page. */
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        {
-          fte_free (kpage);
-          return false; 
-        }
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
+      /* Lazy Loading */
 
-      /* Add the page to the process's address space. */
-      if (!install_page (upage, kpage, writable)) 
-        {
-          fte_free (kpage);
-          return false; 
-        }
-
+      s_pte_alloc(cur_file_info, upage);
+      printf("s_pte allocated address %p \n", upage);
       /* Advance. */
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;

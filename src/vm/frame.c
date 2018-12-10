@@ -10,7 +10,7 @@ struct fte* fte_alloc(enum palloc_flags flags){
     void * frame  = palloc_get_page(flags);
     if(frame == NULL){
         frame_evict();
-        frame - palloc_get_page(flags);
+        frame = palloc_get_page(flags);
     }
     
     fte -> frame = frame;
@@ -33,7 +33,7 @@ struct fte* fte_search_by_frame(void * frame){
 
     for(e = list_begin(&frame_table) ; e != list_end(&frame_table) ; e = list_next(e)){
         struct fte * fte = list_entry(e, struct fte, elem);
-        if(fte-> frame == frame)
+        if(fte->frame == frame)
             return fte;
     }
     return NULL;

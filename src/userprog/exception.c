@@ -6,6 +6,9 @@
 #include "threads/interrupt.h"
 #include "threads/thread.h"
 
+#include "vm/frame.h"
+#include "vm/page.h"
+
 /* Number of page faults processed. */
 static long long page_fault_cnt;
 
@@ -153,22 +156,29 @@ page_fault (struct intr_frame *f)
   write = (f->error_code & PF_W) != 0;
   user = (f->error_code & PF_U) != 0;
   
-  if(!user) {
-    f->error_code = 0;
-    f->eip = (void (*)(void)) f->eax;
-    f->eax = -1;
-    return;
+  bool success = false;
+  if (not_present && fault_addr > USER_VADDR_BOTTOM && is_user_vaddr(fault_addr))
+     success = load_page(fault_addr);
+
+   // printf("fault address : %p \n", fault_addr);
+   // printf("thread name : %s \n", thread_current()->name);
+   // printf("success : %d \n", success);
+   // printf("is_loaded : %d \n", is_loaded(fault_addr));
+  
+  
+  if(!success){
+
+   /* To implement virtual memory, delete the rest of the function
+      body, and replace it with code that brings in the page to
+      which fault_addr refers. */
+   printf ("Page fault at %p: %s error %s page in %s context.\n",
+            fault_addr,
+            not_present ? "not present" : "rights violation",
+            write ? "writing" : "reading",
+            user ? "user" : "kernel");
+   
+   kill (f);
   }
-  
-  /* To implement virtual memory, delete the rest of the function
-     body, and replace it with code that brings in the page to
-     which fault_addr refers. */
-  printf ("Page fault at %p: %s error %s page in %s context.\n",
-          fault_addr,
-          not_present ? "not present" : "rights violation",
-          write ? "writing" : "reading",
-          user ? "user" : "kernel");
-  
-  kill (f);
+
 }
 

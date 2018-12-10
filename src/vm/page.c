@@ -24,6 +24,7 @@ static bool page_less_func (const struct hash_elem *a, const struct hash_elem *b
 
 void s_page_table_init(struct hash * s_page_table){
     hash_init (s_page_table, page_hash_func, page_less_func, NULL);
+
 }
 
 struct s_pte* s_pte_alloc(struct cur_file_info * cur_file_info, void * vaddr){
@@ -31,14 +32,13 @@ struct s_pte* s_pte_alloc(struct cur_file_info * cur_file_info, void * vaddr){
     spte->cur_file_info =  cur_file_info;
     spte -> vaddr = vaddr;
     hash_insert(&thread_current()->s_page_table, &spte->elem);
-    
+    printf("number of hash entry : %d \n", thread_current()->s_page_table.elem_cnt);
     return spte;
 }
 
 static void s_page_action_func (struct hash_elem *e, void *aux UNUSED)
 {
   struct s_pte *spte = hash_entry(e, struct s_pte, elem);
-  free(spte->cur_file_info);
   free(spte);
 }
 
@@ -51,7 +51,6 @@ void s_page_table_destroy(){
 struct s_pte* s_pte_search_by_vaddr(void* vaddr){
     struct s_pte spte;
     spte.vaddr = pg_round_down(vaddr);
-
     struct hash_elem *e = hash_find(&thread_current()->s_page_table, &spte.elem);
     if (e == NULL)
         return NULL;
@@ -63,9 +62,10 @@ bool load_page(void * vaddr){
 
     struct s_pte * spte = s_pte_search_by_vaddr(vaddr);
     enum palloc_flags flags = PAL_USER;
-
-    if(spte == NULL)
+    if(spte == NULL){
+        printf("error 0 \n");
         return false;
+    }
 
     if (spte->cur_file_info-> page_read_bytes == 0)
     {
@@ -74,14 +74,17 @@ bool load_page(void * vaddr){
 
     void * frame = fte_alloc(flags)->frame;
 
-    if(frame == NULL)
-        return false;
+    if(frame == NULL){
+        frame_evict();
+        frame = fte_alloc(flags)->frame;
+    }
 
     /* Load this page. */
 
     if (file_read (spte->cur_file_info->file, frame, spte->cur_file_info -> page_read_bytes) != (int) spte->cur_file_info -> page_read_bytes)
     {
         fte_free(frame);
+        printf("error 1 \n");
         return false; 
     }
 
@@ -91,6 +94,8 @@ bool load_page(void * vaddr){
     if (!install_page (spte-> vaddr, frame, spte->cur_file_info->writable)) 
     {
         fte_free (frame);
+        printf("error 2 \n");
+
         return false; 
     }
 

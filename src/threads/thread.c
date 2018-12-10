@@ -92,7 +92,6 @@ thread_init (void)
   ASSERT (intr_get_level () == INTR_OFF);
 
   signal_init();
-
   lock_init (&tid_lock);
   list_init (&ready_list);
   list_init (&all_list);

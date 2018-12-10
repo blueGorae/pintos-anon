@@ -14,6 +14,8 @@
 #include "vm/frame.h"
 #include "vm/page.h"
 
+#define USER_VADDR_BOTTOM ((void *) 0x08048000)
+
 struct cur_file_info {
     struct file * file;
     off_t offset;
