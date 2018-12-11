@@ -20,6 +20,8 @@
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
 #include "userprog/syscall.h"
+#include "vm/page.h"
+#include "vm/frame.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -67,7 +69,8 @@ start_process (void *file_name_)
   bool success;
   
   void **esp = &if_.esp;
-  
+  s_page_table_init(&thread_current()->s_page_table);
+
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
   if_.gs = if_.fs = if_.es = if_.ds = if_.ss = SEL_UDSEG;
@@ -179,6 +182,9 @@ process_exit (void)
     free(f_e);
   }
   
+  //for project 3
+  s_page_table_destroy();
+
   /* Destroy the current process's page directory and switch back
      to the kernel-only page directory. */
   pd = cur->pagedir;
@@ -479,8 +485,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
+     
 
-      /* Get a page of memory. */
       uint8_t *kpage = palloc_get_page (PAL_USER);
       if (kpage == NULL)
         return false;
