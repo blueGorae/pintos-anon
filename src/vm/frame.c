@@ -61,10 +61,9 @@ void frame_evict(){
     //now FIFO
     
     lock_acquire(&frame_lock);
+
     struct list_elem * e;
-
     e = list_begin(&frame_table);
-
     struct fte* fte = list_entry(e, struct fte, elem);
     void * frame = fte-> frame;
     
