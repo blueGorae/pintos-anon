@@ -495,30 +495,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       cfi->writable = writable;
       struct s_pte* spte = s_pte_alloc(cfi, upage);
       
-      //get physical frame
-      uint8_t *kpage = palloc_get_page (PAL_USER);
-      if (kpage == NULL)
-        return false;
-
-      /* Load this page. */
-      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
-        {
-          palloc_free_page (kpage);
-          return false; 
-        }
-      memset (kpage + page_read_bytes, 0, page_zero_bytes);
-
-      /* Add the page to the process's address space. */
-      if (!install_page (upage, kpage, writable)) 
-        {
-          palloc_free_page (kpage);
-          return false; 
-        }
-
-      //connect
-      spte->is_loaded = true;
-      struct fte* fentry = fte_search_by_frame(kpage);
-      fentry->spte = spte;
+      //no lazy loading      
+      load_page(upage);
 
       /* Advance. */
       read_bytes -= page_read_bytes;

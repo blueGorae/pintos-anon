@@ -85,7 +85,7 @@ bool load_page(void * vaddr){
     
     if(frame == NULL){
         frame_evict();
-        frame = palloc_get_page(flags);
+	frame =  palloc_get_page(flags);
     }
 
     fte_search_by_frame(frame)->spte = spte;
@@ -94,7 +94,7 @@ bool load_page(void * vaddr){
     lock_acquire(&file_lock);
     if (file_read (spte->cur_file_info->file, frame, spte->cur_file_info -> page_read_bytes) != (int) spte->cur_file_info -> page_read_bytes)
     {
-        fte_free(frame);
+        palloc_free_page(frame);
         lock_release(&file_lock);
         return false; 
     }
@@ -106,14 +106,12 @@ bool load_page(void * vaddr){
     /* Add the page to the process's address space. */
     if (!install_page (spte-> vaddr, frame, spte->cur_file_info->writable)) 
     {
-        fte_free (frame);
-
+        palloc_free_page(frame);
         return false; 
     }
     spte-> is_loaded = true;
 
     return true;
-
 }
 
 // bool is_loaded(void * page){
