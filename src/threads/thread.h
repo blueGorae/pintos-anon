@@ -108,6 +108,7 @@ struct thread
     struct file *current_file;
 #endif
     struct hash s_page_table;
+    struct lock s_page_lock;
     /* Owned by thread.c. */
     unsigned magic;                     /* Detects stack overflow. */
   };

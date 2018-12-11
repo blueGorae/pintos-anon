@@ -25,7 +25,7 @@ struct cur_file_info {
 };
 
 struct s_pte{
-    void * vaddr;
+    void * page;
 
     struct cur_file_info * cur_file_info;
     bool is_loaded;

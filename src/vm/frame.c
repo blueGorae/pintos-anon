@@ -59,7 +59,7 @@ struct fte* fte_search_by_spte(struct s_pte * spte){
 void frame_evict(){
     //use clock algorithm
     //now FIFO
-    
+   printf("eviction called \n") ;
     lock_acquire(&frame_lock);
 
     struct list_elem * e;

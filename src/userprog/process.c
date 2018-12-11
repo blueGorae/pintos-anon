@@ -44,7 +44,7 @@ process_execute (const char *file_name)
     return TID_ERROR;
   memset(fn_copy, 0, PGSIZE);
   strlcpy (fn_copy, file_name, PGSIZE);
-  
+
   /* Create a new thread to execute FILE_NAME. */
   tid = thread_create (strtok_r(fn_copy, " ", &save_ptr), PRI_DEFAULT, start_process, fn_copy);
   if (tid == TID_ERROR)
@@ -301,13 +301,15 @@ load (const char *file_name, void (**eip) (void), void **esp)
   off_t file_ofs;
   bool success = false;
   int i;
-  
+
   /* Allocate and activate page directory. */
   t->pagedir = pagedir_create ();
   if (t->pagedir == NULL) 
     goto done;
   process_activate ();
-  
+
+   lock_acquire(&file_lock); 
+
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
@@ -402,6 +404,7 @@ load (const char *file_name, void (**eip) (void), void **esp)
 
  done:
   /* We arrive here whether the load is successful or not. */
+  lock_release(&file_lock);
   t->current_file = file;
   return success;
 }
@@ -493,10 +496,12 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       cfi->page_read_bytes = page_read_bytes;
       cfi->page_zero_bytes = page_zero_bytes;
       cfi->writable = writable;
+
+      lock_acquire(& thread_current()->s_page_lock);
       struct s_pte* spte = s_pte_alloc(cfi, upage);
-      
+      lock_release(& thread_current()-> s_page_lock);
       //no lazy loading      
-      load_page(upage);
+      //load_page(upage);
 
       /* Advance. */
       read_bytes -= page_read_bytes;
