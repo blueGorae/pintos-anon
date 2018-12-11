@@ -1,4 +1,5 @@
 #include "userprog/syscall.h"
+#include "userprog/process.h"
 #include <stdio.h>
 #include <syscall-nr.h>
 #include "threads/thread.h"
@@ -8,6 +9,8 @@
 #include "userprog/process.h"
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
+#include "vm/page.h"
+#include "vm/frame.h"
 
 static void syscall_handler (struct intr_frame *);
 
@@ -76,21 +79,37 @@ struct file* get_file_from_fd(int fd) {
 
 bool validate_read(void *p, int size) {
   int i = 0;
+  const void* vaddr = (const void*) p;
+  struct s_pte* spte = s_pte_search_by_vaddr(vaddr);
   if(p >= PHYS_BASE || p + size >= PHYS_BASE) return false;
-  for(i = 0; i < size; i++) {
+  for(i = 0; i < size; i++)
+  {
     if(get_user(p + i) == -1)
       return false;
   }
+  bool loaded = false;
+  if(spte) loaded = spte->is_loaded;
+  else if(vaddr >= p - 32) loaded = stack_growth((void *) vaddr);  
+  
+  if(!loaded) return false;
   return true;
 }
 
 bool validate_write(void *p, int size) {
   int i = 0;
+  const void* vaddr = (const void*) p;
+  struct s_pte* spte = s_pte_search_by_vaddr(vaddr);
   if(p >= PHYS_BASE || p + size >= PHYS_BASE) return false;
   for(i = 0; i < size; i++) {
     if(put_user(p + i, 0) == false)
       return false;
   }
+
+  bool loaded = false;
+  if(spte) loaded = spte->is_loaded;
+  else if(vaddr >= p - 32) loaded = stack_growth((void *) vaddr);
+  
+  if(loaded) return false;
   return true;
 }
 

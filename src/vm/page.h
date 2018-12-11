@@ -40,10 +40,9 @@ struct s_pte* s_pte_alloc(struct cur_file_info * cur_file_info, void * page);
 
 void s_page_table_destroy();
 
-struct s_pte* s_pte_search_by_page(void* vaddr);
+struct s_pte* s_pte_search_by_vaddr(void * vaddr);
 
 bool load_page(void * vaddr);
-
 //bool is_loaded(void * page);
-
+bool stack_growth(void* vaddr);
 #endif /* vm/page.h */

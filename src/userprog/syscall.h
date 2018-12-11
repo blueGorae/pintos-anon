@@ -11,6 +11,8 @@
 #include "filesys/fsutil.h"
 #include "filesys/inode.h"
 #include "filesys/off_t.h"
+#include "vm/page.h"
+#include "vm/frame.h"
 
 struct fd_elem {
   int fd;
