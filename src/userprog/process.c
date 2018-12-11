@@ -486,7 +486,16 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
      
-
+      //make virtual page
+      struct cur_file_info* cfi = malloc(sizeof(struct cur_file_info));
+      cfi->file = file;
+      cfi->offset = ofs;
+      cfi->page_read_bytes = page_read_bytes;
+      cfi->page_zero_bytes = page_zero_bytes;
+      cfi->writable = writable;
+      struct s_pte* spte = s_pte_alloc(cfi, upage);
+      
+      //get physical frame
       uint8_t *kpage = palloc_get_page (PAL_USER);
       if (kpage == NULL)
         return false;
@@ -505,6 +514,11 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
           palloc_free_page (kpage);
           return false; 
         }
+
+      //connect
+      spte->is_loaded = true;
+      struct fte* fentry = fte_search_by_frame(kpage);
+      fentry->spte = spte;
 
       /* Advance. */
       read_bytes -= page_read_bytes;
