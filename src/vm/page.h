@@ -39,5 +39,5 @@ struct s_pte* s_pte_search_by_page(void* vaddr);
 bool load_page(void * vaddr);
 
 //bool is_loaded(void * page);
-
+bool stack_growth(void* vaddr);
 #endif /* vm/page.h */
