@@ -20,8 +20,6 @@
 #include "threads/vaddr.h"
 #include "threads/malloc.h"
 #include "userprog/syscall.h"
-#include "vm/frame.h"
-#include "vm/page.h"
 
 static thread_func start_process NO_RETURN;
 static bool load (const char *cmdline, void (**eip) (void), void **esp);
@@ -69,9 +67,6 @@ start_process (void *file_name_)
   bool success;
   
   void **esp = &if_.esp;
-
-  s_page_table_init(&thread_current()->s_page_table);
-  printf("After s_page table init \n");
   
   /* Initialize interrupt frame and load executable. */
   memset (&if_, 0, sizeof if_);
@@ -82,7 +77,6 @@ start_process (void *file_name_)
   
   /* If load failed, quit. */
   if (!success) {
-    printf("Load failed! \n");
     send_signal(-1, SIG_EXEC);
     palloc_free_page (file_name);
     thread_exit ();
@@ -96,8 +90,7 @@ start_process (void *file_name_)
   *esp -= file_name_len;
   *esp -= (unsigned)(*esp) % 4; // align memory
   strlcpy (*esp, file_name, file_name_len);
-
-  printf("before free file name %p\n", file_name); 
+  
   palloc_free_page (file_name);
   file_name = (char*)(*esp);
   save_ptr = file_name;
@@ -143,6 +136,7 @@ start_process (void *file_name_)
    child of the calling process, or if process_wait() has already
    been successfully called for the given TID, returns -1
    immediately, without waiting.
+
    This function will be implemented in problem 2-2.  For now, it
    does nothing. */
 int
@@ -172,22 +166,16 @@ process_exit (void)
     free(sig);
   }
   
-  lock_acquire(&file_lock);
   if (cur->current_file != NULL) {
     file_allow_write(cur->current_file);
     file_close(cur->current_file);
   }
-  lock_release(&file_lock);
-
+  
   for (e = list_begin (&cur->fd_table); e != list_end (&cur->fd_table); )
   {
     f_e = list_entry (e, struct fd_elem, elem);
     e = list_remove(e);
-
-    lock_acquire(&file_lock);
     file_close(f_e->file_ptr);
-    lock_release(&file_lock);
-
     free(f_e);
   }
   
@@ -206,8 +194,6 @@ process_exit (void)
       cur->pagedir = NULL;
       pagedir_activate (NULL);
       pagedir_destroy (pd);
-
-      s_page_table_destroy();
     }
 }
 
@@ -316,7 +302,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
     goto done;
   process_activate ();
   
-  lock_acquire(&file_lock);
   /* Open executable file. */
   file = filesys_open (file_name);
   if (file == NULL) 
@@ -412,7 +397,6 @@ load (const char *file_name, void (**eip) (void), void **esp)
  done:
   /* We arrive here whether the load is successful or not. */
   t->current_file = file;
-  lock_release(&file_lock);
   return success;
 }
 
@@ -468,11 +452,15 @@ validate_segment (const struct Elf32_Phdr *phdr, struct file *file)
 /* Loads a segment starting at offset OFS in FILE at address
    UPAGE.  In total, READ_BYTES + ZERO_BYTES bytes of virtual
    memory are initialized, as follows:
+
         - READ_BYTES bytes at UPAGE must be read from FILE
           starting at offset OFS.
+
         - ZERO_BYTES bytes at UPAGE + READ_BYTES must be zeroed.
+
    The pages initialized by this function must be writable by the
    user process if WRITABLE is true, read-only otherwise.
+
    Return true if successful, false if a memory allocation error
    or disk read error occurs. */
 static bool
@@ -492,17 +480,25 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
 
-      struct cur_file_info * cur_file_info = (struct cur_file_info *) malloc(sizeof(struct cur_file_info));
-      cur_file_info-> file = file;
-      cur_file_info-> offset = ofs;
-      cur_file_info-> page_read_bytes = page_read_bytes;
-      cur_file_info-> page_zero_bytes = page_zero_bytes;
-      cur_file_info-> writable = writable;
+      /* Get a page of memory. */
+      uint8_t *kpage = palloc_get_page (PAL_USER);
+      if (kpage == NULL)
+        return false;
 
-      /* Lazy Loading */
-      printf("spte alloc %p \n", upage);
-      s_pte_alloc(cur_file_info, upage);
+      /* Load this page. */
+      if (file_read (file, kpage, page_read_bytes) != (int) page_read_bytes)
+        {
+          palloc_free_page (kpage);
+          return false; 
+        }
+      memset (kpage + page_read_bytes, 0, page_zero_bytes);
 
+      /* Add the page to the process's address space. */
+      if (!install_page (upage, kpage, writable)) 
+        {
+          palloc_free_page (kpage);
+          return false; 
+        }
 
       /* Advance. */
       read_bytes -= page_read_bytes;
@@ -519,18 +515,11 @@ setup_stack (void **esp)
 {
   uint8_t *kpage;
   bool success = false;
+
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
-      void * vaddr = ((uint8_t *) PHYS_BASE) - PGSIZE ;
-      
-      struct s_pte * spte = s_pte_alloc(NULL, vaddr);
-      
-      fte_search_by_frame(kpage)->spte = spte ;
-
-      success = install_page (vaddr , kpage, true);
-
-      printf("setup stack frame : %p , vaddr : %p  \n", kpage, vaddr);
+      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
       if (success)
         *esp = PHYS_BASE;
       else
