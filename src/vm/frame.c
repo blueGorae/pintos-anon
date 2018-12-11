@@ -21,6 +21,9 @@ void fte_free(void * frame){
     printf("fte free called %p \n", frame);
     lock_acquire(&frame_lock);
     struct fte * fte = fte_search_by_frame(frame);
+    
+    fte -> spte ->is_loaded = false;
+
     list_remove(&fte->elem);
     free(fte);
     lock_release(&frame_lock);

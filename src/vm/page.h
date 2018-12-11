@@ -28,7 +28,7 @@ struct s_pte{
     void * vaddr;
 
     struct cur_file_info * cur_file_info;
-
+    bool is_loaded;
     size_t swap_index;
     struct hash_elem elem;
 
@@ -44,6 +44,6 @@ struct s_pte* s_pte_search_by_page(void* vaddr);
 
 bool load_page(void * vaddr);
 
-bool is_loaded(void * page);
+//bool is_loaded(void * page);
 
 #endif /* vm/page.h */

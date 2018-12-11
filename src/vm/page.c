@@ -31,8 +31,10 @@ struct s_pte* s_pte_alloc(struct cur_file_info * cur_file_info, void * vaddr){
     struct s_pte * spte = (struct s_pte *) malloc(sizeof(struct s_pte));
     spte->cur_file_info =  cur_file_info;
     spte -> vaddr = vaddr;
+    spte -> is_loaded = false;
     hash_insert(&thread_current()->s_page_table, &spte->elem);
-    //printf("number of hash entry : %d \n", thread_current()->s_page_table.elem_cnt);
+
+    printf("number of hash entry : %d , new vaddr of new allocated spte : %p \n", thread_current()->s_page_table.elem_cnt, vaddr);
     return spte;
 }
 
@@ -76,9 +78,10 @@ bool load_page(void * vaddr){
         printf("error -1 %p\n", vaddr);
         return false;
     }
+    if(spte -> is_loaded)
+        return true;
 
-    if (spte->cur_file_info-> page_read_bytes == 0)
-    {
+    if (spte->cur_file_info-> page_read_bytes == 0){
         flags == PAL_USER & PAL_ZERO;
     }
 
@@ -116,18 +119,19 @@ bool load_page(void * vaddr){
 
         return false; 
     }
+    spte-> is_loaded = true;
 
     return true;
 
 }
 
-bool is_loaded(void * page){
-   struct s_pte * spte = s_pte_search_by_vaddr(page); 
-    if(fte_search_by_spte(spte) == NULL)
-        return false;
+// bool is_loaded(void * page){
+//    struct s_pte * spte = s_pte_search_by_vaddr(page); 
+//     if(fte_search_by_spte(spte) == NULL)
+//         return false;
     
-    return true;
-}
+//     return true;
+// }
 
 static bool
 install_page (void *upage, void *kpage, bool writable)

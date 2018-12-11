@@ -525,6 +525,8 @@ setup_stack (void **esp)
       void * vaddr = ((uint8_t *) PHYS_BASE) - PGSIZE ;
       
       struct s_pte * spte = s_pte_alloc(NULL, vaddr);
+      
+      fte_search_by_frame(kpage)->spte = spte ;
 
       success = install_page (vaddr , kpage, true);
 
