@@ -8,7 +8,6 @@ void frame_table_init(){
 struct fte* fte_alloc(void * page){
     lock_acquire(&frame_lock);
     struct fte* fte = (struct fte *)malloc(sizeof(struct fte));
-    printf("frame alloc %p \n", page);
     fte -> frame = page;
     fte -> thread = thread_current();
     fte -> allocatable = true;
@@ -18,7 +17,6 @@ struct fte* fte_alloc(void * page){
 }
 void fte_free(void * frame){
 
-    printf("fte free called %p \n", frame);
     lock_acquire(&frame_lock);
     struct fte * fte = fte_search_by_frame(frame);
     

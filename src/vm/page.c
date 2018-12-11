@@ -34,7 +34,6 @@ struct s_pte* s_pte_alloc(struct cur_file_info * cur_file_info, void * vaddr){
     spte -> is_loaded = false;
     hash_insert(&thread_current()->s_page_table, &spte->elem);
 
-    printf("number of hash entry : %d , new vaddr of new allocated spte : %p \n", thread_current()->s_page_table.elem_cnt, vaddr);
     return spte;
 }
 
@@ -47,7 +46,6 @@ static void s_page_action_func (struct hash_elem *e, void *aux UNUSED)
     //  fte_free(pagedir_get_page(thread_current()->pagedir, spte->vaddr));
      // pagedir_clear_page(thread_current()->pagedir, spte->vaddr);
     //}
-    printf("free the spte %p \n ", spte);
     free(spte);
 }
 
@@ -59,10 +57,8 @@ void s_page_table_destroy(){
 struct s_pte* s_pte_search_by_vaddr(void* vaddr){
     struct s_pte spte;
     spte.vaddr = pg_round_down(vaddr);
-    printf("before hash find in spte search by vaddr \n");
     struct hash_elem *e = hash_find(&thread_current()->s_page_table, &spte.elem);
     
-    printf("after hash find in spte search by vaddr \n");
 
     if (e == NULL)
         return NULL;
@@ -75,7 +71,6 @@ bool load_page(void * vaddr){
     struct s_pte * spte = s_pte_search_by_vaddr(vaddr);
     enum palloc_flags flags = PAL_USER;
     if(spte == NULL){
-        printf("error -1 %p\n", vaddr);
         return false;
     }
     if(spte -> is_loaded)
@@ -87,10 +82,8 @@ bool load_page(void * vaddr){
 
     void * frame = palloc_get_page(flags);
     
-    printf("new frame %p and loaded page %p\n", frame, spte->vaddr);
     
     if(frame == NULL){
-        printf("error 0 \n");
         frame_evict();
         frame = palloc_get_page(flags);
     }
@@ -102,7 +95,6 @@ bool load_page(void * vaddr){
     if (file_read (spte->cur_file_info->file, frame, spte->cur_file_info -> page_read_bytes) != (int) spte->cur_file_info -> page_read_bytes)
     {
         fte_free(frame);
-        printf("error 1 \n");
         lock_release(&file_lock);
         return false; 
     }
@@ -115,7 +107,6 @@ bool load_page(void * vaddr){
     if (!install_page (spte-> vaddr, frame, spte->cur_file_info->writable)) 
     {
         fte_free (frame);
-        printf("error 2 \n");
 
         return false; 
     }

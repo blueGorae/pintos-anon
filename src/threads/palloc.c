@@ -75,10 +75,7 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
   if (page_cnt == 0)
     return NULL;
 
-  if(pool == &user_pool)
-    printf("this is user palloc get page \n");
-  else
-    printf("this is kernel palloc get page \n");
+ 
   lock_acquire (&pool->lock);
   page_idx = bitmap_scan_and_flip (pool->used_map, 0, page_cnt, false);
   lock_release (&pool->lock);
@@ -105,7 +102,6 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
         PANIC ("palloc_get: out of pages");
     }
 
-  printf("palloc_get_page %p , %d\n", pages, page_cnt);
   return pages;
 }
 
@@ -159,7 +155,6 @@ palloc_free_multiple (void *pages, size_t page_cnt)
 void
 palloc_free_page (void *page) 
 {
-  printf("palloc free is called %p \n", page);
   palloc_free_multiple (page, 1);
 }
 
