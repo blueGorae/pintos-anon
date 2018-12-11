@@ -8,13 +8,15 @@
 #include "userprog/process.h"
 #include "threads/malloc.h"
 #include "threads/vaddr.h"
+#include "vm/page.h"
+#include "vm/frame.h"
 
 static void syscall_handler (struct intr_frame *);
 
 static int get_user(const uint8_t *uaddr);
 static bool put_user(uint8_t *udst, uint8_t byte);
 struct file* get_file_from_fd(int fd);
-bool validate_read(void *p, int size);
+bool validate_read(const void *p,void* esp, int size);
 bool validate_write(void *p, int size);
 
 static void (*syscall_table[20])(struct intr_frame*) = {
@@ -74,7 +76,7 @@ struct file* get_file_from_fd(int fd) {
   return NULL;
 }
 
-bool validate_read(void *p, int size) {
+bool validate_read(const void *p, void* esp, int size) {
   int i = 0;
   if(p >= PHYS_BASE || p + size >= PHYS_BASE) return false;
   for(i = 0; i < size; i++) {
@@ -110,7 +112,7 @@ syscall_init (void)
 static void
 syscall_handler (struct intr_frame *f) 
 { 
-  int syscall_num = validate_read(f->esp, 4) ? *(int*)(f->esp) : -1;
+  int syscall_num = validate_read((const void*)f->esp, f->esp, 4) ? *(int*)(f->esp) : -1;
   
   if(syscall_num < 0 || syscall_num >= 20) {
     kill_process();
@@ -128,7 +130,7 @@ void sys_halt (struct intr_frame * f UNUSED) {
 void sys_exit (struct intr_frame * f) {
   int status;
   
-  if(!validate_read(f->esp + 4, 4)) kill_process();
+  if(!validate_read((const void*)f->esp + 4, f->esp, 4)) kill_process();
   
   status = *(int*)(f->esp + 4);
 
@@ -143,16 +145,16 @@ void sys_exec (struct intr_frame * f) {
   pid_t pid;
   char *itr;
   
-  if(!validate_read(f->esp + 4, 4)) kill_process();
+  if(!validate_read((const void*)f->esp + 4,f->esp, 4)) kill_process();
   
   cmd_line = *(char**)(f->esp + 4);
   itr = cmd_line;
   
-  if(!validate_read((void*)cmd_line, 1)) kill_process();
+  if(!validate_read((void*)cmd_line,f->esp, 1)) kill_process();
   
   while(*itr != '\0') {
     itr++;
-    if(!validate_read((void*)itr, 1)) kill_process();
+    if(!validate_read((void*)itr,f->esp, 1)) kill_process();
   }
   
   pid = process_execute(cmd_line);
@@ -161,7 +163,7 @@ void sys_exec (struct intr_frame * f) {
 
 // int wait (pid_t pid)
 void sys_wait (struct intr_frame * f) {
-  if(!validate_read(f->esp + 4, 4)) kill_process();
+  if(!validate_read(f->esp + 4, f->esp, 4)) kill_process();
   
   pid_t pid = *(pid_t*)(f->esp + 4);
   
@@ -174,17 +176,17 @@ void sys_create (struct intr_frame * f) {
   unsigned initial_size;
   char *itr;
   
-  if(!validate_read(f->esp + 4, 8)) kill_process();
+  if(!validate_read(f->esp + 4,f->esp, 8)) kill_process();
   
   name = *(char **)(f->esp + 4);
   initial_size = *(unsigned*)(f->esp + 8);
   itr = name;
   
-  if(!validate_read((void*)name, 1)) kill_process();
+  if(!validate_read((void*)name,f->esp, 1)) kill_process();
 
   while(*itr != '\0') {
     itr++;
-    if(!validate_read((void*)itr, 1)) kill_process();
+    if(!validate_read((void*)itr,f->esp, 1)) kill_process();
   }
 
   lock_acquire(&file_lock);  
@@ -197,16 +199,16 @@ void sys_remove (struct intr_frame * f) {
   char *name;
   char *itr;
   
-  if(!validate_read(f->esp + 4, 4)) kill_process();
+  if(!validate_read(f->esp + 4,f->esp, 4)) kill_process();
   
   name = *(char **)(f->esp + 4);
   itr = name;
   
-  if(!validate_read((void*)name, 1)) kill_process();
+  if(!validate_read((void*)name,f->esp, 1)) kill_process();
 
   while(*itr != '\0') {
     itr++;
-    if(!validate_read((void*)itr, 1)) kill_process();
+    if(!validate_read((void*)itr,f->esp, 1)) kill_process();
   }
   
   lock_acquire(&file_lock);
@@ -224,16 +226,16 @@ void sys_open (struct intr_frame * f) {
   struct fd_elem *f_elem;
   struct fd_elem *fd_elem;
   
-  if(!validate_read(f->esp + 4, 4)) kill_process();
+  if(!validate_read(f->esp + 4,f->esp, 4)) kill_process();
 
   name = *(char **)(f->esp + 4);
   itr = name;
 
-  if(!validate_read((void*)name, 1)) kill_process();
+  if(!validate_read((void*)name,f->esp, 1)) kill_process();
 
   while(*itr != '\0') {
     itr++;
-    if(!validate_read((void*)itr, 1)) kill_process();
+    if(!validate_read((void*)itr,f->esp, 1)) kill_process();
   }
   
   if(itr == name) {
@@ -274,7 +276,7 @@ void sys_filesize (struct intr_frame * f) {
   int fd;
   struct file *file;
   
-  if(!validate_read(f->esp + 4, 4)) kill_process();
+  if(!validate_read(f->esp + 4,f->esp, 4)) kill_process();
   
   fd = *(int*)(f->esp + 4);
   file = get_file_from_fd(fd);
@@ -293,7 +295,7 @@ void sys_read (struct intr_frame * f) {
   unsigned size;
   struct file *file;
   
-  if(!validate_read(f->esp + 4, 12)) kill_process();
+  if(!validate_read(f->esp + 4, f->esp, 12)) kill_process();
   
   fd = *(int*)(f->esp + 4);
   buffer = *(uint8_t**)(f->esp + 8);
@@ -333,14 +335,14 @@ void sys_write (struct intr_frame * f) {
   unsigned size;
   struct file *file;
   
-  if(!validate_read(f->esp + 4, 12)) kill_process();
+  if(!validate_read(f->esp + 4,f->esp, 12)) kill_process();
   
   fd = *(int*)(f->esp + 4);
   buffer = *(char**)(f->esp + 8);
   size = *(unsigned*)(f->esp + 12);
   file = get_file_from_fd(fd);
   
-  if(!validate_read(buffer, size)) kill_process();
+  if(!validate_read(buffer,f->esp, size)) kill_process();
   
   if(fd == 0) {
     f->eax = 0; 
@@ -366,7 +368,7 @@ void sys_seek (struct intr_frame * f) {
   off_t position;
   struct file *file;
   
-  if(!validate_read(f->esp + 4, 8)) kill_process();
+  if(!validate_read(f->esp + 4,f->esp, 8)) kill_process();
   
   fd = *(int*)(f->esp + 4);
   position = *(int*)(f->esp + 8);
@@ -381,7 +383,7 @@ void sys_seek (struct intr_frame * f) {
 
 //unsigned tell (int fd)
 void sys_tell (struct intr_frame * f) {
-  if(!validate_read(f->esp + 4, 4)) kill_process();
+  if(!validate_read(f->esp + 4,f->esp, 4)) kill_process();
   int fd = *(int*)(f->esp + 4);
   struct file *file = get_file_from_fd(fd);
   if(file == NULL)
@@ -399,7 +401,7 @@ void sys_close (struct intr_frame * f) {
   struct list_elem *e;
   struct fd_elem *fd_elem;
   
-  if(!validate_read(f->esp + 4, 4)) kill_process();
+  if(!validate_read(f->esp + 4,f->esp, 4)) kill_process();
   
   fd = *(int*)(f->esp + 4);
   file = get_file_from_fd(fd);
