@@ -132,3 +132,33 @@ install_page (void *upage, void *kpage, bool writable)
   return (pagedir_get_page (t->pagedir, upage) == NULL
           && pagedir_set_page (t->pagedir, upage, kpage, writable));
 }
+
+bool stack_growth(void* vaddr)
+{
+	//check stack size
+  size_t new_size = PHYS_BASE - pg_round_down(vaddr);
+  if(new_size > (1 << 23)) return false;
+
+  struct cur_file_info* cfi = malloc(sizeof(struct cur_file_info));
+  struct s_pte* spte = s_pte_alloc(cfi, pg_round_down(vaddr));
+  spte->is_loaded = true;
+  spte->cur_file_info->writable = true;
+  
+  uint8_t* frame = palloc_get_page(PAL_USER);
+  if(frame == NULL)
+  {
+    free(cfi);
+    free(spte);
+    return false;    
+  }
+  fte_search_by_frame(frame)->spte = spte;
+  if(!install_page(spte->vaddr, frame, spte->cur_file_info->writable))
+  {
+    free(spte->cur_file_info);
+    free(spte);
+    palloc_free_page(frame);
+    return false;
+  }
+
+  return true;
+}
