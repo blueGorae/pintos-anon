@@ -166,7 +166,7 @@ page_fault (struct intr_frame *f)
     return;
   }
 
-if(not_present && is_user_vaddr(fault_addr)){
+if(not_present && user){
    success = load_page(fault_addr);
 }
 

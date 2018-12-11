@@ -13,7 +13,6 @@ struct fte{
 
     struct s_pte * spte;
     struct thread * thread;
-    bool allocatable;
     
     struct list_elem elem;
 };

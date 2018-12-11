@@ -102,7 +102,7 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
         PANIC ("palloc_get: out of pages");
     }
 
-    printf("palloc get page %p \n", pages);
+   // printf("palloc get page %p \n", pages);
 
   return pages;
 }
@@ -148,7 +148,7 @@ palloc_free_multiple (void *pages, size_t page_cnt)
 
   ASSERT (bitmap_all (pool->used_map, page_idx, page_cnt));
   bitmap_set_multiple (pool->used_map, page_idx, page_cnt, false);
-    printf("palloc free page %p \n", pages);
+   // printf("palloc free page %p \n", pages);
 
 }
 

@@ -10,7 +10,6 @@ struct fte* fte_alloc(void * page){
     struct fte* fte = (struct fte *)malloc(sizeof(struct fte));
     fte -> frame = page;
     fte -> thread = thread_current();
-    fte -> allocatable = true;
     list_push_back(&frame_table, &fte->elem);
     lock_release(&frame_lock);
     return fte;
@@ -19,9 +18,7 @@ void fte_free(void * frame){
 
     lock_acquire(&frame_lock);
     struct fte * fte = fte_search_by_frame(frame);
-    
     fte -> spte ->is_loaded = false;
-
     list_remove(&fte->elem);
     free(fte);
     lock_release(&frame_lock);
@@ -59,7 +56,6 @@ struct fte* fte_search_by_spte(struct s_pte * spte){
 void frame_evict(){
     //use clock algorithm
     //now FIFO
-   printf("eviction called \n") ;
     lock_acquire(&frame_lock);
 
     struct list_elem * e;

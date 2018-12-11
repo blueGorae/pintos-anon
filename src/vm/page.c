@@ -1,8 +1,6 @@
 #include "vm/page.h"
 #include "userprog/process.h"
 
-#define STACK_MAX (1 << 23) //256kb
-
 static bool install_page (void *upage, void *kpage, bool writable);
  
 static unsigned page_hash_func (const struct hash_elem *e, void *aux UNUSED)
@@ -24,14 +22,19 @@ static bool page_less_func (const struct hash_elem *a, const struct hash_elem *b
 
 void s_page_table_init(struct hash * s_page_table){
     hash_init (s_page_table, page_hash_func, page_less_func, NULL);
-
 }
 
-struct s_pte* s_pte_alloc(struct cur_file_info * cur_file_info, void * vaddr){
+struct s_pte* s_pte_alloc(struct file * file, off_t offset, uint32_t page_read_bytes, uint32_t page_zero_bytes, bool writable, void * page){
     struct s_pte * spte = (struct s_pte *) malloc(sizeof(struct s_pte));
-    spte->cur_file_info =  cur_file_info;
-    spte -> page = vaddr;
+ 
+    spte-> file = file;
+    spte -> offset = offset;
+    spte -> page_read_bytes = page_read_bytes;
+    spte -> page_zero_bytes = page_zero_bytes;
+    spte -> writable = writable;
+    spte -> page = page;
     spte -> is_loaded = false;
+
     hash_insert(&thread_current()->s_page_table, &spte->elem);
 
     return spte;
@@ -41,10 +44,8 @@ static void s_page_action_func (struct hash_elem *e, void *aux UNUSED)
 {
     //printf("page free called \n");
   struct s_pte *spte = hash_entry(e, struct s_pte, elem);
-    //if(is_loaded(spte->vaddr)){
-    palloc_free_page(fte_search_by_spte(spte)->frame);
-    //  fte_free(pagedir_get_page(thread_current()->pagedir, spte->vaddr));
-     // pagedir_clear_page(thread_current()->pagedir, spte->vaddr);
+    // if(spte->is_loaded)
+    //     palloc_free_page(fte_search_by_spte(spte)->frame);
     //}
     free(spte);
 }
@@ -52,7 +53,6 @@ static void s_page_action_func (struct hash_elem *e, void *aux UNUSED)
 void s_page_table_destroy(){
     hash_destroy (&thread_current()->s_page_table, s_page_action_func);
 }
-
 
 struct s_pte* s_pte_search_by_vaddr(void* vaddr){
     struct s_pte spte;
@@ -75,7 +75,7 @@ bool load_page(void * vaddr){
     if(spte -> is_loaded)
         return true;
 
-    if (spte->cur_file_info-> page_read_bytes == 0){
+    if (spte-> page_read_bytes == 0){
         flags = PAL_USER | PAL_ZERO;
     }
 
@@ -89,29 +89,33 @@ bool load_page(void * vaddr){
 
     fte_search_by_frame(frame)->spte = spte;
 
+
     /* Load this page. */
-    if(spte->cur_file_info->page_read_bytes > 0){
+    if( (flags & PAL_ZERO) == 0){
+        file_seek(spte->file, spte->offset);
         lock_acquire(&file_lock);
-        if (file_read_at (spte->cur_file_info->file, frame, spte->cur_file_info -> page_read_bytes, spte->cur_file_info->offset) != (int) spte->cur_file_info -> page_read_bytes)
+        //file_seek(spte->cur_file_info-> file, spte-> cur_file_info-> offset);
+       //file_seek(spte->file, spte->offset);
+
+        if (file_read (spte->file, frame, spte -> page_read_bytes) != (int) spte -> page_read_bytes)
         {
-            palloc_free_page(frame);
             lock_release(&file_lock);
+            palloc_free_page(frame);
             return false; 
         }
-
         lock_release(&file_lock);
+
+        memset (frame + spte->page_read_bytes, 0, spte-> page_zero_bytes);
     }
-        memset (frame + spte->cur_file_info->page_read_bytes, 0, spte->cur_file_info-> page_zero_bytes);
-    
     /* Add the page to the process's address space. */
-    if (!install_page (spte-> page, frame, spte->cur_file_info->writable)) 
+    if (!install_page (spte-> page, frame, spte->writable)) 
     {
         palloc_free_page(frame);
         return false; 
     }
     spte-> is_loaded = true;
 
-    printf("new frame : %p , loaded page : %p \n", frame, spte->page);
+    //printf("new frame : %p , loaded page : %p \n", frame, spte->page);
 
     return true;
 }

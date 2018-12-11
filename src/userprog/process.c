@@ -488,17 +488,9 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
          and zero the final PAGE_ZERO_BYTES bytes. */
       size_t page_read_bytes = read_bytes < PGSIZE ? read_bytes : PGSIZE;
       size_t page_zero_bytes = PGSIZE - page_read_bytes;
-     
-      //make virtual page
-      struct cur_file_info* cfi = malloc(sizeof(struct cur_file_info));
-      cfi->file = file;
-      cfi->offset = ofs;
-      cfi->page_read_bytes = page_read_bytes;
-      cfi->page_zero_bytes = page_zero_bytes;
-      cfi->writable = writable;
 
       lock_acquire(& thread_current()->s_page_lock);
-      struct s_pte* spte = s_pte_alloc(cfi, upage);
+      struct s_pte* spte = s_pte_alloc(file, ofs, page_read_bytes, page_zero_bytes, writable, upage);
       lock_release(& thread_current()-> s_page_lock);
       //no lazy loading      
       //load_page(upage);
@@ -507,6 +499,8 @@ load_segment (struct file *file, off_t ofs, uint8_t *upage,
       read_bytes -= page_read_bytes;
       zero_bytes -= page_zero_bytes;
       upage += PGSIZE;
+      ofs += page_read_bytes;
+
     }
   return true;
 }

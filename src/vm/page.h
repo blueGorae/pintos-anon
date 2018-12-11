@@ -14,29 +14,23 @@
 #include "vm/frame.h"
 #include "vm/page.h"
 
-//#define USER_VADDR_BOTTOM ((void *) 0x08048000)
+struct s_pte{
+    void * page;
 
-struct cur_file_info {
     struct file * file;
     off_t offset;
     uint32_t page_read_bytes;
     uint32_t page_zero_bytes; 
     bool writable;
-};
 
-struct s_pte{
-    void * page;
-
-    struct cur_file_info * cur_file_info;
     bool is_loaded;
-    size_t swap_index;
     struct hash_elem elem;
 
 };
 
 void s_page_table_init(struct hash * s_page_table);
 
-struct s_pte* s_pte_alloc(struct cur_file_info * cur_file_info, void * page);
+struct s_pte* s_pte_alloc(struct file * file, off_t offset, uint32_t page_read_bytes, uint32_t page_zero_bytes, bool writable, void * page);
 
 void s_page_table_destroy();
 
