@@ -519,11 +519,16 @@ setup_stack (void **esp)
 {
   uint8_t *kpage;
   bool success = false;
-  printf("before palloc get page in setup stack \n");
   kpage = palloc_get_page (PAL_USER | PAL_ZERO);
   if (kpage != NULL) 
     {
-      success = install_page (((uint8_t *) PHYS_BASE) - PGSIZE, kpage, true);
+      void * vaddr = ((uint8_t *) PHYS_BASE) - PGSIZE ;
+      
+      struct s_pte * spte = s_pte_alloc(NULL, vaddr);
+
+      success = install_page (vaddr , kpage, true);
+
+      printf("setup stack frame : %p , vaddr : %p  \n", kpage, vaddr);
       if (success)
         *esp = PHYS_BASE;
       else
