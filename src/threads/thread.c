@@ -180,6 +180,7 @@ thread_create (const char *name, int priority,
   ASSERT (function != NULL);
 
   /* Allocate thread. */
+  printf("before palloc get page in thread_create \n");
   t = palloc_get_page (PAL_ZERO);
   if (t == NULL)
     return TID_ERROR;

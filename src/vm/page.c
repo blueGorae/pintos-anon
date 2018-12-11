@@ -40,12 +40,13 @@ static void s_page_action_func (struct hash_elem *e, void *aux UNUSED)
 {
     //printf("page free called \n");
   struct s_pte *spte = hash_entry(e, struct s_pte, elem);
-  //if(is_loaded(spte->vaddr)){
-
-      fte_free(fte_search_by_spte(spte)->frame);
-      pagedir_clear_page(thread_current()->pagedir, spte->vaddr);
-//  }
-  free(spte);
+    //if(is_loaded(spte->vaddr)){
+    fte_free(fte_search_by_spte(spte)->frame);
+    //  fte_free(pagedir_get_page(thread_current()->pagedir, spte->vaddr));
+     // pagedir_clear_page(thread_current()->pagedir, spte->vaddr);
+    //}
+    printf("free the spte %p \n ", spte);
+    free(spte);
 }
 
 void s_page_table_destroy(){
@@ -56,7 +57,11 @@ void s_page_table_destroy(){
 struct s_pte* s_pte_search_by_vaddr(void* vaddr){
     struct s_pte spte;
     spte.vaddr = pg_round_down(vaddr);
+    printf("before hash find in spte search by vaddr \n");
     struct hash_elem *e = hash_find(&thread_current()->s_page_table, &spte.elem);
+    
+    printf("after hash find in spte search by vaddr \n");
+
     if (e == NULL)
         return NULL;
 
@@ -68,7 +73,7 @@ bool load_page(void * vaddr){
     struct s_pte * spte = s_pte_search_by_vaddr(vaddr);
     enum palloc_flags flags = PAL_USER;
     if(spte == NULL){
-        printf("error 0 \n");
+        printf("error -1 %p\n", vaddr);
         return false;
     }
 
@@ -77,22 +82,29 @@ bool load_page(void * vaddr){
         flags == PAL_USER & PAL_ZERO;
     }
 
-    void * frame = fte_alloc(flags, spte)->frame;
+    void * frame = palloc_get_page(flags);
+    
     printf("new frame %p and loaded page %p\n", frame, spte->vaddr);
+    
     if(frame == NULL){
         printf("error 0 \n");
         frame_evict();
-        frame = fte_alloc(flags, spte)->frame;
+        frame = palloc_get_page(flags);
     }
 
-    /* Load this page. */
+    fte_search_by_frame(frame)->spte = spte;
 
+    /* Load this page. */
+    lock_acquire(&file_lock);
     if (file_read (spte->cur_file_info->file, frame, spte->cur_file_info -> page_read_bytes) != (int) spte->cur_file_info -> page_read_bytes)
     {
         fte_free(frame);
         printf("error 1 \n");
+        lock_release(&file_lock);
         return false; 
     }
+
+    lock_release(&file_lock);
 
     memset (frame + spte->cur_file_info->page_read_bytes, 0, spte->cur_file_info-> page_zero_bytes);
 

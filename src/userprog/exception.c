@@ -4,10 +4,10 @@
 #include "userprog/gdt.h"
 #include "userprog/signal.h"
 #include "threads/interrupt.h"
+#include "threads/vaddr.h"
 #include "threads/thread.h"
-
-#include "vm/frame.h"
 #include "vm/page.h"
+#include "vm/frame.h"
 
 /* Number of page faults processed. */
 static long long page_fault_cnt;
@@ -17,17 +17,14 @@ static void page_fault (struct intr_frame *);
 
 /* Registers handlers for interrupts that can be caused by user
    programs.
-
    In a real Unix-like OS, most of these interrupts would be
    passed along to the user process in the form of signals, as
    described in [SV-386] 3-24 and 3-25, but we don't implement
    signals.  Instead, we'll make them simply kill the user
    process.
-
    Page faults are an exception.  Here they are treated the same
    way as other exceptions, but this will need to change to
    implement virtual memory.
-
    Refer to [IA32-v3a] section 5.15 "Exception and Interrupt
    Reference" for a description of each of these exceptions. */
 void
@@ -119,7 +116,6 @@ kill (struct intr_frame *f)
 /* Page fault handler.  This is a skeleton that must be filled in
    to implement virtual memory.  Some solutions to project 2 may
    also require modifying this code.
-
    At entry, the address that faulted is in CR2 (Control Register
    2) and information about the fault, formatted as described in
    the PF_* macros in exception.h, is in F's error_code member.  The
@@ -157,14 +153,10 @@ page_fault (struct intr_frame *f)
   user = (f->error_code & PF_U) != 0;
   
   bool success = false;
-  if (not_present && fault_addr > USER_VADDR_BOTTOM && is_user_vaddr(fault_addr))
-     success = load_page(fault_addr);
 
-   // printf("fault address : %p \n", fault_addr);
-   // printf("thread name : %s \n", thread_current()->name);
-   // printf("success : %d \n", success);
-   // printf("is_loaded : %d \n", is_loaded(fault_addr));
-  
+  if(not_present && is_user_vaddr(fault_addr)){
+      success = load_page(fault_addr);
+  }
   
   if(!success){
 
@@ -179,6 +171,4 @@ page_fault (struct intr_frame *f)
    
    kill (f);
   }
-
 }
-

@@ -11,17 +11,14 @@
 #include "threads/synch.h"
 #include "threads/vaddr.h"
 #include "vm/frame.h"
-
 /* Page allocator.  Hands out memory in page-size (or
    page-multiple) chunks.  See malloc.h for an allocator that
    hands out smaller chunks.
-
    System memory is divided into two "pools" called the kernel
    and user pools.  The user pool is for user (virtual) memory
    pages, the kernel pool for everything else.  The idea here is
    that the kernel needs to have memory for its own operations
    even if user processes are swapping like mad.
-
    By default, half of system RAM is given to the kernel pool and
    half to the user pool.  That should be huge overkill for the
    kernel pool, but that's just fine for demonstration purposes. */
@@ -74,10 +71,14 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
   struct pool *pool = flags & PAL_USER ? &user_pool : &kernel_pool;
   void *pages;
   size_t page_idx;
-  
+
   if (page_cnt == 0)
     return NULL;
 
+  if(pool == &user_pool)
+    printf("this is user palloc get page \n");
+  else
+    printf("this is kernel palloc get page \n");
   lock_acquire (&pool->lock);
   page_idx = bitmap_scan_and_flip (pool->used_map, 0, page_cnt, false);
   lock_release (&pool->lock);
@@ -89,15 +90,22 @@ palloc_get_multiple (enum palloc_flags flags, size_t page_cnt)
 
   if (pages != NULL) 
     {
+
       if (flags & PAL_ZERO)
         memset (pages, 0, PGSIZE * page_cnt);
+      
+      /* Add this page to frame table */
+      if (flags & PAL_USER){
+        fte_alloc(pages);
+      }
     }
   else 
     {
       if (flags & PAL_ASSERT)
         PANIC ("palloc_get: out of pages");
     }
-    //printf("palloc get page : %p \n", pages);
+
+  printf("palloc_get_page %p , %d\n", pages, page_cnt);
   return pages;
 }
 
@@ -127,8 +135,9 @@ palloc_free_multiple (void *pages, size_t page_cnt)
 
   if (page_from_pool (&kernel_pool, pages))
     pool = &kernel_pool;
-  else if (page_from_pool (&user_pool, pages))
+  else if (page_from_pool (&user_pool, pages)){
     pool = &user_pool;
+  }
   else
     NOT_REACHED ();
 
@@ -140,12 +149,17 @@ palloc_free_multiple (void *pages, size_t page_cnt)
 
   ASSERT (bitmap_all (pool->used_map, page_idx, page_cnt));
   bitmap_set_multiple (pool->used_map, page_idx, page_cnt, false);
+
+  if(page_from_pool(&user_pool, pages))
+    fte_free(pages);
+
 }
 
 /* Frees the page at PAGE. */
 void
 palloc_free_page (void *page) 
 {
+  printf("palloc free is called %p \n", page);
   palloc_free_multiple (page, 1);
 }
 

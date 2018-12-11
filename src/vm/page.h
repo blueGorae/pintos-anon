@@ -10,7 +10,7 @@
 
 #include "userprog/pagedir.h"
 #include "userprog/process.h"
-
+#include "userprog/syscall.h"
 #include "vm/frame.h"
 #include "vm/page.h"
 
